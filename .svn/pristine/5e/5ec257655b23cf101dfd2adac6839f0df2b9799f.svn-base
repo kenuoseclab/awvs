@@ -1,0 +1,65 @@
+package msl.test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Set;
+
+import org.apache.http.HttpHost;
+import org.junit.Test;
+
+import msl.utils.AwvsUtils;
+import msl.utils.AwvsUtils.Auth;
+import msl.utils.FileUtils;
+
+public class AwvsUtilTest {
+
+	/**
+	 * 测试host
+	 */
+	@Test
+	public void run0() {
+		 String host = new HttpHost("192.168.93.1:3443").toURI();
+		 System.out.println(host);
+		 
+		 Integer a = 2;
+		 System.out.println(a.toString());
+	}
+	
+	/**
+	 * 测试登录功能
+	 */
+	@Test
+	public void run1() {
+		Auth auth = AwvsUtils.login("614236065@qq.com", "ecnu@123", "127.0.0.1");
+		System.out.println(auth.getXauth());
+	}
+	
+	/**
+	 * 测试添加功能
+	 */
+	@Test
+	public void run2() {
+		AwvsUtils.addTarget("https://www.zto.com/", "614236065@qq.com", "ecnu@123", "127.0.0.1");
+	}
+	
+	/**
+	 * 测试添加扫描功能
+	 */
+	@Test
+	public void run3() {
+		AwvsUtils.addScan("https://www.ph.com.cn/", "614236065@qq.com", "ecnu@123", "127.0.0.1");
+	}
+	
+	/**
+	 *测试批量添加，按照文件行设置，待优化
+	 * @throws IOException 
+	 */
+	@Test
+	public void run4() throws IOException {
+		Set<String> line = FileUtils.getListByLine(new File("src/files/a.txt"));
+		for (String string : line) {
+			AwvsUtils.addScan(string, "614236065@qq.com", "ecnu@123", "127.0.0.1");
+		}
+	}
+	
+}

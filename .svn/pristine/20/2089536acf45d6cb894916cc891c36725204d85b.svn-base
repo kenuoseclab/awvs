@@ -1,0 +1,10 @@
+0、环境要求，awvs开启远程登录
+
+1、封装用户信息位json，其中password是sha256加密数据，例如
+	{"email":"614236065@qq.com","password":"6f83b69310851ac6a5785d2557d929a549efa105e445030ea9bc7cbc225e71df","remember_me":true}
+
+2、post请求http://192.168.93.1:3443/api/v1/me/login，返回X-Auth:值
+
+3、request请求行中添加X-Auth:获取的值，请求http://192.168.93.1:3443/api/v1/me，返回json结果。
+
+4、每次请求数据拿着X-Auth值获取信息。

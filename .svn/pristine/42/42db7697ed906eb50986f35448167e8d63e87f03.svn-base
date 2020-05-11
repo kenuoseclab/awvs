@@ -1,0 +1,89 @@
+package msl.https;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.TrustAllStrategy;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.junit.Test;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.web.client.RestTemplate;
+
+import com.alibaba.fastjson.JSON;
+
+public class Demo1Test {
+
+	
+	/**
+	 * 使用httpclient和restTemplate访问https
+	 * @throws Exception
+	 */
+	@Test
+	public void run1() throws Exception {
+
+		// 配置Apache HttpClient,TrustAllStrategy忽略证书校验，NoopHostnameVerifier忽略主机校验
+		HttpClient httpClient = HttpClients.custom()
+				.setSSLContext(new SSLContextBuilder().loadTrustMaterial(null, TrustAllStrategy.INSTANCE).build())
+				.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build();
+
+		// 让RestTemplate使用Apache HttpClient访问网络
+		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+		requestFactory.setHttpClient(httpClient);
+
+		URI uri = new URIBuilder().setScheme("https").setHost("192.168.93.1").setPort(3443).build();
+
+		RestTemplate restTemplate = new RestTemplate(requestFactory);
+		restTemplate.getMessageConverters().add(new FormHttpMessageConverter());
+		String resp = restTemplate.getForObject(uri, String.class);
+		System.out.println(resp);
+	}
+	
+	
+	/**
+	 * 模拟浏览器登录awvs
+	 * @throws Exception
+	 */
+	@Test
+	public void run2() throws Exception {
+
+		// 构造访问https的client,TrustAllStrategy忽略证书校验，NoopHostnameVerifier忽略主机校验
+		HttpClient httpClient = HttpClients.custom()
+				.setSSLContext(new SSLContextBuilder().loadTrustMaterial(null, TrustAllStrategy.INSTANCE).build())
+				.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build();
+		
+		// 构造json参数，放入实体
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("email", "614236065@qq.com");
+		map.put("password", "6f83b69310851ac6a5785d2557d929a549efa105e445030ea9bc7cbc225e71df");
+		map.put("remember_me", false);
+		map.put("logout_previous", true);
+		String json = JSON.toJSONString(map);
+		HttpEntity entity = new StringEntity(json, ContentType.APPLICATION_JSON) ;
+		
+		// 构造请求路径，并访问
+		URI uri = new URIBuilder().setScheme("https").setHost("192.168.93.1").setPort(3443).setPath("/api/v1/me/login").build();
+		HttpUriRequest request = RequestBuilder.create("post").setEntity(entity).setUri(uri).build();
+		HttpResponse response = httpClient.execute(request);
+		
+		// 解析获取的数据
+		Header[] headers = response.getHeaders("X-Auth");
+		for (Header header : headers) {
+			System.out.println(header.getValue());
+		}
+		
+	}
+
+}

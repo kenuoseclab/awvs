@@ -1,0 +1,294 @@
+package msl.utils;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.TrustAllStrategy;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
+
+import com.alibaba.fastjson.annotation.JSONField;
+
+import lombok.Data;
+import msl.https.AwvsTest;
+import msl.utils.AwvsUtils.Target;
+
+/**
+ * awvs的常用工具类，适用于awvs_vsersion_12
+ * 
+ * @author 61423
+ *
+ */
+public class AwvsUtils {
+
+	private final static Logger log = LoggerFactory.getLogger(AwvsTest.class);
+	static HttpClient httpClient = null;
+	static CookieStore cookieStore = new BasicCookieStore();
+	static {
+		try {
+			httpClient = HttpClients.custom()
+					.setSSLContext(new SSLContextBuilder().loadTrustMaterial(null, TrustAllStrategy.INSTANCE).build())
+					.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).setDefaultCookieStore(cookieStore).build();
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
+			log.error("初始化 HttpCient 失败......");
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * 封装登录信息
+	 */
+	@Data
+	public class Auth {
+		
+		// 用户信息
+		private String email = null;
+		private String password = null;
+		private Boolean remember_me = false;
+		private Boolean logout_previous = true;
+		
+		// 用户口令
+		@JSONField(serialize = false)
+		private Header xauth = null;
+		@JSONField(serialize = false)
+		private Cookie uisCookie = null;
+		
+		// 请求参数
+		@JSONField(serialize = false)
+		private String scheme = "https";
+		@JSONField(serialize = false)
+		private String ip = "127.0.0.1";
+		@JSONField(serialize = false)
+		private Integer port = 3443;
+		@JSONField(serialize = false)
+		private String path = null;
+		@JSONField(serialize = false)
+		private HttpMethod method = HttpMethod.POST; 
+		
+		public void setPassword(String password) {
+			this.password = EncryptUtils.getSHA256(password);
+		}
+	};
+
+	/**
+	 * 登录模块
+	 * @param email	用户账号
+	 * @param password	用户密码
+	 * @param ip	awvs服务器ip
+	 * @return
+	 */
+	public static Auth login(String email, String password, String ip) {
+		log.debug("开始封装登录信息");
+		Auth auth = new AwvsUtils().new Auth();
+		auth.setEmail(email);
+		auth.setPassword(password);
+		auth.setIp(ip);
+		auth.setPath("/api/v1/me/login");
+		auth.setMethod(HttpMethod.POST);
+		String authJson = JsonUtils.toJSONString(auth);
+		log.debug("封装完成...\t {}", authJson);
+
+		log.debug("开始初始化uri");
+		URI uri = null;
+		try {
+			uri = new URIBuilder().setScheme(auth.getScheme()).setHost(auth.getIp()).setPort(auth.getPort()).setPath(auth.getPath())
+					.build();
+		} catch (URISyntaxException e) {
+			log.error("uri初始化失败......");
+			e.printStackTrace();
+		}
+		log.debug("uri初始化成功");
+		
+		log.debug("开始构造request请求");
+		HttpUriRequest request = RequestBuilder.create(auth.getMethod().toString()).setEntity(new StringEntity(authJson, ContentType.APPLICATION_JSON)).setUri(uri).build();
+		log.debug("request请求构造完成");
+		
+		HttpResponse response = null;
+		try {
+			log.debug("开始访问\t{}",auth.getIp());
+			response = httpClient.execute(request);
+		} catch (IOException e) {
+			log.error("访问\t{}失败......",auth.getIp());
+			e.printStackTrace();
+		}
+		log.debug("访问\t{}成功", auth.getIp());
+		
+		
+		log.debug("访问结果: {}", response.getStatusLine());
+		
+		if(response.getStatusLine().getStatusCode() == 204 && (response.getHeaders("X-Auth").length > 0) ) {
+			auth.setXauth(response.getHeaders("X-Auth")[0]);
+			auth.setUisCookie(CookUtils.getCookieByName("ui_session", cookieStore.getCookies()));
+			log.info("登录成功，返回X-Auth：{}",auth.getXauth().getValue());
+			log.info("登录成功，返回ui_session：{}",auth.getUisCookie().getValue());
+		}
+		
+		return auth;
+	}
+
+	/**
+	 * 封装target信息
+	 */
+	@Data
+	public static class Target{
+		private String address = null;
+		private String description = null;
+		private String criticality = "10";
+		
+		private String target_id = null;
+		private String type = null;
+		private Auth auth = null;
+		
+		public void setCriticality(Integer criticality) {
+			this.criticality = criticality.toString();
+		}
+	}
+	
+	/**
+	 * 添加target模块
+	 * @param address	目标的请求路径
+	 * @param email		用户名
+	 * @param password	用户密码
+	 * @param ip	awvs服务器ip
+	 */
+	public static Target addTarget(String address, String email, String password, String ip) {
+		Auth auth = login(email, password, ip);
+		
+		log.debug("开始更新请求路径");
+		auth.setPath("/api/v1/targets");
+		log.debug("开始封装target请求参数");
+		
+		Target target = new Target();
+		target.setAddress(address);
+		String targetJson = JsonUtils.toJSONString(target);
+		log.debug("请求参数是：{}",targetJson);
+		
+		log.debug("开始添加");
+		URI uri = null;
+		try {
+			uri = new URIBuilder().setScheme(auth.getScheme()).setHost(auth.getIp()).setPort(auth.getPort()).setPath(auth.getPath()).build();
+		} catch (URISyntaxException e) {
+			log.error("封装uri失败......");
+			e.printStackTrace();
+		}
+		HttpUriRequest request = RequestBuilder.create(auth.getMethod().toString()).setHeader(auth.getXauth()).setEntity(new StringEntity(targetJson, ContentType.APPLICATION_JSON)).setUri(uri).build();
+		HttpResponse response = null;
+		try {
+			response = httpClient.execute(request);
+		} catch (IOException e) {
+			log.error("请求失败......");
+			e.printStackTrace();
+		}
+		
+		log.debug("访问结果：{}", response.getStatusLine());;
+		
+		// 需要解析返回的数据
+		InputStream content = null;
+		try {
+			content = response.getEntity().getContent();
+		} catch (UnsupportedOperationException | IOException e) {
+			e.printStackTrace();
+		}
+		StringBuffer sb = new StringBuffer();
+		BufferedReader br = new BufferedReader(new InputStreamReader(content));
+		String line = null;
+		try {
+			while((line = br.readLine()) != null) {
+				sb.append(line);
+			}
+		} catch (IOException e) {
+			log.error("读取添加target的response的实体失败......");
+			e.printStackTrace();
+		}
+		
+		if(sb.length()!=0) {
+			target = JsonUtils.parseObject(sb.toString(), Target.class);
+			target.setAuth(auth);
+			log.info("添加target完成，target_id；{}", target.getTarget_id());
+		}
+		return target;
+	}
+	
+	@Data
+	public static class Profile{
+		private String profile_id;
+		private Schedule schedule = new Schedule();
+		private String target_id ;
+		private String ui_session_id;
+		private Target target;
+	}
+	@Data
+	public static class Schedule{
+		private Boolean disable;
+		private String start_date;
+		private Boolean time_sensitive;
+	}
+	
+	/**
+	 * 添加扫描
+	 * @param address
+	 * @param email
+	 * @param password
+	 * @param ip
+	 * @return
+	 */
+	public static Profile addScan(String address, String email, String password, String ip) {
+		Target target = addTarget(address, email, password, ip);
+		target.getAuth().setPath("/api/v1/scans");
+		
+		Profile profile = new Profile();
+		profile.setProfile_id("11111111-1111-1111-1111-111111111111");
+		profile.getSchedule().setDisable(false);
+		profile.getSchedule().setStart_date(null);
+		profile.getSchedule().setTime_sensitive(false);
+		profile.setTarget_id(target.getTarget_id());
+		profile.setUi_session_id("d8bc36af08b2bba72b98274a8af2be08");	// 固定值
+		String profileJson = JsonUtils.toJSONString(profile);
+		log.debug("请求参数是：{}",profileJson);
+		
+		log.debug("开始添加扫描");
+		URI uri = null;
+		try {
+			uri = new URIBuilder().setScheme(target.getAuth().getScheme()).setHost(target.getAuth().getIp()).setPort(target.getAuth().getPort()).setPath(target.getAuth().getPath()).build();
+		} catch (URISyntaxException e) {
+			log.error("封装uri失败......");
+			e.printStackTrace();
+		}
+		HttpUriRequest request = RequestBuilder.create(target.getAuth().getMethod().toString()).setHeader(target.getAuth().getXauth()).setEntity(new StringEntity(profileJson, ContentType.APPLICATION_JSON)).setUri(uri).build();
+		HttpResponse response = null;
+		try {
+			response = httpClient.execute(request);
+		} catch (IOException e) {
+			log.error("请求失败......");
+			e.printStackTrace();
+		}
+		
+		log.debug("添加扫描结果：{}", response.getStatusLine());;
+		
+		
+		
+		return null;
+	}
+}

@@ -1,0 +1,188 @@
+package msl.test;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.http.Header;
+import org.apache.http.HeaderElement;
+import org.apache.http.message.BasicHeader;
+import org.junit.Test;
+
+import com.alibaba.fastjson.JSON;
+
+import msl.utils.AwvsUtils;
+import msl.utils.AwvsUtils.Auth;
+import msl.utils.AwvsUtils.Target;
+import msl.utils.FileUtils;
+
+public class AwvsUtilTest {
+
+	/**
+	 * 测试时间格式转换
+	 * @throws ParseException 
+	 */
+	@Test
+	public void run0() throws ParseException {
+		String dd = "2020-05-15 23:25:00";
+		SimpleDateFormat sdf = new SimpleDateFormat();
+		String string2Date = "yyyy-MM-dd HH:mm:ss";
+		String date2String = "yyyyMMdd'T'HHmmssZZZZZ";
+		sdf.applyPattern(string2Date);
+		Date date = sdf.parse(dd);
+		sdf.applyPattern(date2String);
+		String string = sdf.format(date);
+		
+		 System.out.println(string);
+	}
+	
+	/**
+	 * 测试json
+	 * @throws ParseException
+	 */
+	@Test
+	public void run01() throws ParseException {
+		JSON parse = (JSON) JSON.parse("{\r\n" + 
+				" \"targets\": [\r\n" + 
+				"  {\r\n" + 
+				"   \"address\": \"http://course.ecnu.edu.cn/\",\r\n" + 
+				"   \"continuous_mode\": false,\r\n" + 
+				"   \"criticality\": 10,\r\n" + 
+				"   \"description\": \"\",\r\n" + 
+				"   \"last_scan_date\": \"2020-05-11T06:05:42.718542+00:00\",\r\n" + 
+				"   \"last_scan_id\": \"577434dc-099e-4d29-b7f2-7b504dddb527\",\r\n" + 
+				"   \"last_scan_session_id\": \"140a468d-768b-4d6f-b73c-97aee35879cb\",\r\n" + 
+				"   \"last_scan_session_status\": \"processing\",\r\n" + 
+				"   \"manual_intervention\": null,\r\n" + 
+				"   \"severity_counts\": {\r\n" + 
+				"    \"high\": 0,\r\n" + 
+				"    \"info\": 0,\r\n" + 
+				"    \"low\": 1,\r\n" + 
+				"    \"medium\": 0\r\n" + 
+				"   },\r\n" + 
+				"   \"target_id\": \"11000867-8b77-4558-9a6b-c2ce17b16431\",\r\n" + 
+				"   \"threat\": 1,\r\n" + 
+				"   \"type\": null,\r\n" + 
+				"   \"verification\": null\r\n" + 
+				"  },\r\n" + 
+				"  {\r\n" + 
+				"   \"address\": \"http://www.sole.ecnu.edu.cn/\",\r\n" + 
+				"   \"continuous_mode\": false,\r\n" + 
+				"   \"criticality\": 10,\r\n" + 
+				"   \"description\": \"\",\r\n" + 
+				"   \"last_scan_date\": \"2020-05-11T06:00:03.909457+00:00\",\r\n" + 
+				"   \"last_scan_id\": \"a0c9a71d-78d7-4039-91ce-6beee9c77b45\",\r\n" + 
+				"   \"last_scan_session_id\": \"5d3d2f20-0e6a-49cd-978d-95d1bb51a676\",\r\n" + 
+				"   \"last_scan_session_status\": \"deleted\",\r\n" + 
+				"   \"manual_intervention\": null,\r\n" + 
+				"   \"severity_counts\": {\r\n" + 
+				"    \"high\": 0,\r\n" + 
+				"    \"info\": 2,\r\n" + 
+				"    \"low\": 6,\r\n" + 
+				"    \"medium\": 2\r\n" + 
+				"   },\r\n" + 
+				"   \"target_id\": \"056dd505-73fd-4933-83fb-bb7f49edc09d\",\r\n" + 
+				"   \"threat\": 2,\r\n" + 
+				"   \"type\": null,\r\n" + 
+				"   \"verification\": null\r\n" + 
+				"  },\r\n" + 
+				"  {\r\n" + 
+				"   \"address\": \"http://www.zcb.ecnu.edu.cn/\",\r\n" + 
+				"   \"continuous_mode\": false,\r\n" + 
+				"   \"criticality\": 10,\r\n" + 
+				"   \"description\": \"\",\r\n" + 
+				"   \"last_scan_date\": \"2020-05-11T06:00:12.117786+00:00\",\r\n" + 
+				"   \"last_scan_id\": \"06f74df2-f3db-4f47-af2a-a20f44a4bc2e\",\r\n" + 
+				"   \"last_scan_session_id\": \"25f3c211-74c6-4f70-bae9-c59b71ecd64d\",\r\n" + 
+				"   \"last_scan_session_status\": \"deleted\",\r\n" + 
+				"   \"manual_intervention\": null,\r\n" + 
+				"   \"severity_counts\": {\r\n" + 
+				"    \"high\": 0,\r\n" + 
+				"    \"info\": 3,\r\n" + 
+				"    \"low\": 2,\r\n" + 
+				"    \"medium\": 1\r\n" + 
+				"   },\r\n" + 
+				"   \"target_id\": \"99a849b4-b83b-46dd-93df-6ae5df1cbfcd\",\r\n" + 
+				"   \"threat\": 2,\r\n" + 
+				"   \"type\": null,\r\n" + 
+				"   \"verification\": null\r\n" + 
+				"  },\r\n" + 
+				"  {\r\n" + 
+				"   \"address\": \"https://www.ecnu.edu.cn/\",\r\n" + 
+				"   \"continuous_mode\": false,\r\n" + 
+				"   \"criticality\": 10,\r\n" + 
+				"   \"description\": \"\",\r\n" + 
+				"   \"last_scan_date\": \"2020-05-11T06:05:42.683543+00:00\",\r\n" + 
+				"   \"last_scan_id\": \"335b1672-620e-4fa0-a2e5-815522600dab\",\r\n" + 
+				"   \"last_scan_session_id\": \"59870481-aef8-43d9-9079-2e503e754479\",\r\n" + 
+				"   \"last_scan_session_status\": \"processing\",\r\n" + 
+				"   \"manual_intervention\": null,\r\n" + 
+				"   \"severity_counts\": {\r\n" + 
+				"    \"high\": 0,\r\n" + 
+				"    \"info\": 0,\r\n" + 
+				"    \"low\": 1,\r\n" + 
+				"    \"medium\": 0\r\n" + 
+				"   },\r\n" + 
+				"   \"target_id\": \"55648d94-2411-44e7-9a0d-0422126a62e3\",\r\n" + 
+				"   \"threat\": 1,\r\n" + 
+				"   \"type\": null,\r\n" + 
+				"   \"verification\": null\r\n" + 
+				"  }\r\n" + 
+				" ],\r\n" + 
+				" \"pagination\": {\r\n" + 
+				"  \"next_cursor\": null,\r\n" + 
+				"  \"previous_cursor\": 0\r\n" + 
+				" }\r\n" + 
+				"}");
+		
+		System.out.println(parse);
+		
+		System.out.println();
+	}
+	
+	
+	/**
+	 * 测试登录功能
+	 */
+	@Test
+	public void run1() {
+		Auth auth = AwvsUtils.login("614236065@qq.com", "ecnu@123", "127.0.0.1");
+	}
+	
+	/**
+	 * 测试添加功能
+	 */
+	@Test
+	public void run2() {
+		Auth auth = AwvsUtils.login("614236065@qq.com", "ecnu@123", "127.0.0.1");
+		Target target = AwvsUtils.addTarget("http://www.at-siac.com/", auth);
+		AwvsUtils.addScan(target, auth);
+	}
+	
+	/**
+	 * 测试添加扫描功能
+	 */
+	@Test
+	public void run3() {
+		//AwvsUtils.addScan("https://www.ph.com.cn/", "614236065@qq.com", "ecnu@123", "127.0.0.1");
+	}
+	
+	/**
+	 *测试批量添加，按照文件行设置，待优化,超过2个就会卡死
+	 * @throws IOException 
+	 */
+	@Test
+	public void run4() throws IOException {
+		Auth auth = AwvsUtils.login("614236065@qq.com", "ecnu@123", "127.0.0.1");
+		List<String> scans = AwvsUtils.addScans(new File("src/files/a.txt"), auth);
+		System.out.println("-----------------扫描成功清单--------------------");
+		for (String string : scans) {
+			System.out.println(string);
+		}
+	}
+	
+}

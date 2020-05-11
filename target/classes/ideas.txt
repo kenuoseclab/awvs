@@ -1,0 +1,28 @@
+0、环境要求，awvs开启远程登录
+
+1、封装用户信息位json，其中password是sha256加密数据，例如
+	{"email":"614236065@qq.com","password":"6f83b69310851ac6a5785d2557d929a549efa105e445030ea9bc7cbc225e71df","remember_me":true}
+
+2、post请求http://192.168.93.1:3443/api/v1/me/login，返回X-Auth:值
+
+3、request请求行中添加X-Auth:获取的值，请求http://192.168.93.1:3443/api/v1/me，返回json结果。
+
+4、每次请求数据拿着X-Auth值获取信息。
+
+
+# 添加站点
+POST /api/v1/targets HTTP/1.1
+Host: 192.168.93.1:3443
+User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64; rv:56.0) Gecko/20100101 Firefox/56.0
+Accept: application/json, text/plain, */*
+Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+Accept-Encoding: gzip, deflate
+Content-Type: application/json;charset=utf-8
+X-Auth: 2986ad8c0a5b3df4d7028d5f3c06e936c5ec08beeb6793da0be2b4a84bce029061fec67cefad242dfb7eb49adc72068202eb8b82765f20c8044be54f3c7ddbd76
+Content-Length: 84
+Origin: https://192.168.93.1:3443
+Connection: close
+Referer: https://192.168.93.1:3443/
+Cookie: ui_session=2986ad8c0a5b3df4d7028d5f3c06e936c5ec08beeb6793da0be2b4a84bce029061fec67cefad242dfb7eb49adc72068202eb8b82765f20c8044be54f3c7ddbd76
+
+{"address":"https://www.zto.com/?from=openv","description":"zol","criticality":"10"}

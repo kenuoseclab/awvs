@@ -1,0 +1,49 @@
+package msl.domain;
+
+import java.io.Serializable;
+
+public class Target implements Serializable{
+	private static final long serialVersionUID = -6165179149834263344L;
+	
+	private String target_id;
+	private String address;
+	private Integer criticality;
+	private String description;
+	private String type;
+	public String getTarget_id() {
+		return target_id;
+	}
+	public void setTarget_id(String target_id) {
+		this.target_id = target_id;
+	}
+	public String getAddress() {
+		return address;
+	}
+	public void setAddress(String address) {
+		this.address = address;
+	}
+	public Integer getCriticality() {
+		return criticality;
+	}
+	public void setCriticality(Integer criticality) {
+		this.criticality = criticality;
+	}
+	public String getDescription() {
+		return description;
+	}
+	public void setDescription(String description) {
+		this.description = description;
+	}
+	public String getType() {
+		return type;
+	}
+	public void setType(String type) {
+		this.type = type;
+	}
+	
+	@Override
+	public String toString() {
+		return "Target [target_id=" + target_id + ", address=" + address + ", criticality=" + criticality
+				+ ", description=" + description + ", type=" + type + "]";
+	}
+}
